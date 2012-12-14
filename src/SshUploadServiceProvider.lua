@@ -8,7 +8,8 @@ return {
 	exportPresetFields = {
 		{ key = 'host', default = nil },
 		{ key = 'user', default = nil },
-		{ key = 'identity', default = nil }
+		{ key = 'identity', default = nil },
+		{ key = 'destination_path', default = nil }
 	},
 	startDialog = nil,
 	sectionsForTopOfDialog = SshUploadServiceProviderDialogSections.topSections,

@@ -24,6 +24,12 @@ function SshUploadServiceProviderDialogSections.topSections (viewFactory, proper
 			},
 			viewFactory:edit_field {
 				value = LrView.bind "identity"
+			},
+			viewFactory:static_text {
+					title = "Destination path",
+			},
+			viewFactory:edit_field {
+				value = LrView.bind "destination_path"
 			}
 		}
 	}
