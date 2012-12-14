@@ -3,7 +3,8 @@ local LrPathUtils = import "LrPathUtils"
 
 SshUploadTask = {}
 
-function SshUploadTask.processRenderedPhotos(functionContext, exportContext)	
+function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
+	local progressScope = exportContext:configureProgress {	title = "Uploading photo(s) to " .. exportContext.propertyTable["host"] .. " over SSH" }
 	for i, rendition in exportContext:renditions() do
 		local success, pathOrMessage = rendition:waitForRender()
 		if success then
@@ -33,4 +34,5 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 			rendition:uploadFailed(pathOrMessage)
 		end
 	end
+	progressScope:done()
 end
