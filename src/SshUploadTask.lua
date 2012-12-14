@@ -5,8 +5,9 @@ SshUploadTask = {}
 
 function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 	local progressScope = exportContext:configureProgress {	title = "Uploading photo(s) to " .. exportContext.propertyTable["host"] .. " over SSH" }
-	for i, rendition in exportContext:renditions() do
+	for i, rendition in exportContext:renditions { stopIfCanceled = true } do
 		local success, pathOrMessage = rendition:waitForRender()
+		if progressScope:isCanceled() then break end
 		if success then
 			local identityKey = exportContext.propertyTable["identity"]
 			local sshTarget = exportContext.propertyTable["user"] .. "@" .. exportContext.propertyTable["host"]
