@@ -13,7 +13,7 @@ function SshUploadServiceProviderDialogSections.topSections (viewFactory, proper
 				spacing = viewFactory:control_spacing(),
 				viewFactory:column {
 					viewFactory:static_text {
-						title = "User",
+						title = "User:",
 					},
 					viewFactory:edit_field {
 						value = LrView.bind "user",
@@ -22,7 +22,7 @@ function SshUploadServiceProviderDialogSections.topSections (viewFactory, proper
 				},
 				viewFactory:column {
 					viewFactory:static_text {
-						title = "Target host",
+						title = "Host:",
 					},
 					viewFactory:edit_field {
 						value = LrView.bind "host",
@@ -31,10 +31,11 @@ function SshUploadServiceProviderDialogSections.topSections (viewFactory, proper
 				},
 				viewFactory:column {
 					viewFactory:static_text {
-						title = "Destination path",
+						title = "Path to upload directory:",
 					},
 					viewFactory:edit_field {
 						value = LrView.bind "destination_path",
+						tooltip = "The path to the root directory of the upload where the collection directories will be put. The structure will be created if it does not exist.",
 						fill = 1
 					},
 					fill = 1
@@ -43,10 +44,11 @@ function SshUploadServiceProviderDialogSections.topSections (viewFactory, proper
 			viewFactory:spacer {},
 			viewFactory:row {
 				viewFactory:static_text {
-						title = "Identity file",
+						title = "Identity file (private key):",
 				},
 				viewFactory:edit_field {
 					value = LrView.bind "identity",
+					tooltip = "The private part of a public/private key pair. The public part must be installed on the remote system, associated with your user. Use ssh-agent or an equivalent tool to create the key pair.",
 					fill = 1
 				}
 			}
