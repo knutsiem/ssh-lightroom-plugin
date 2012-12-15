@@ -6,7 +6,9 @@ function SshUploadServiceProviderDialogSections.topSections (viewFactory, proper
 	return {
 		{
 			title = "SSH connection",
-			synopsis = nil,
+			synopsis = function (props)
+				return props["user"] .. "@" .. props["host"] .. ":" .. props["destination_path"]
+			end,
 			viewFactory:static_text {
 					title = "User",
 			},
