@@ -21,19 +21,16 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 			local sshTarget = exportContext.propertyTable["user"] .. "@" .. exportContext.propertyTable["host"]
 			local hardlinkTarget = nil
 			for j, collection in ipairs(rendition.photo:getContainedCollections()) do
-				-- todo: what about ""?
 				local collectionPath = destinationPath(exportContext.propertyTable["destination_path"], collection:getName())
 				local sshMkdirStatus = LrTasks.execute("ssh -i " .. identityKey .. " " .. sshTarget .. " 'mkdir -p \"" .. collectionPath .. "\"'")
 				if j == 1 then
 					local scpStatus = LrTasks.execute("scp -i " .. identityKey .. " " .. rendition.destinationPath .. " " .. sshTarget .. ":'\"" .. collectionPath .. "\"'")
 					if (scpStatus ~= 0) then
-						-- transfer failure
 						rendition:uploadFailed("Transfer (copy) failure, scp exit status was " .. scpStatus)
 					end
 				else
 					local sshLnStatus = LrTasks.execute("ssh -i " .. identityKey .. " " .. sshTarget .. " 'ln \"" .. hardlinkTarget .. "\" \"" .. collectionPath .. "\"'")
 					if (sshLnStatus ~= 0) then
-						-- transfer failure
 						rendition:uploadFailed("Transfer (hardlink) failure, ssh exit status was " .. sshLnStatus)
 					end
 				end
