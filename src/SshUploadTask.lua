@@ -23,6 +23,9 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 			for j, collection in ipairs(rendition.photo:getContainedCollections()) do
 				local collectionPath = destinationPath(exportContext.propertyTable["destination_path"], collection:getName())
 				local sshMkdirStatus = LrTasks.execute("ssh -i " .. identityKey .. " " .. sshTarget .. " 'mkdir -p \"" .. collectionPath .. "\"'")
+				if sshMkdirStatus ~= 0 then
+					rendition:uploadFailed("Transfer (collection creation) failure, ssh exit status was " .. sshMkdirStatus)
+				end
 				if j == 1 then
 					local scpStatus = LrTasks.execute("scp -i " .. identityKey .. " " .. rendition.destinationPath .. " " .. sshTarget .. ":'\"" .. collectionPath .. "\"'")
 					if (scpStatus ~= 0) then
