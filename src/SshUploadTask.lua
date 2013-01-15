@@ -56,7 +56,7 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 				end
 			end
 
-			rendition:recordPublishedPhotoId(collectionPath .. "/" .. LrPathUtils.leafName(rendition.destinationPath))
+			rendition:recordPublishedPhotoId(exportContext.publishedCollectionInfo["name"] .. "/" .. LrPathUtils.leafName(rendition.destinationPath))
 		else
 			-- render failure
 			rendition:uploadFailed(pathOrMessage)
@@ -69,7 +69,8 @@ function SshUploadTask.deletePhotosFromPublishedCollection( publishSettings, arr
 	local identityKey = publishSettings["identity"]
 	local sshTarget = publishSettings["user"] .. "@" .. publishSettings["host"]
 	for i, remotePhotoId in ipairs(arrayOfPhotoIds) do
-		local sshRmCommand = "ssh -i " .. identityKey .. " " .. sshTarget .. " 'rm \"" .. remotePhotoId .. "\"'"
+		local remotePhotoPath = remoteCollectionPath(publishSettings["destination_path"], remotePhotoId)
+		local sshRmCommand = "ssh -i " .. identityKey .. " " .. sshTarget .. " 'rm \"" .. remotePhotoPath .. "\"'"
 		logger:debugf("Deleting photo with remoteId %s from collection %s: %s", remotePhotoId, localCollectionId, sshRmCommand)
 		local sshRmStatus = LrTasks.execute(sshRmCommand)
 		if (sshRmStatus ~= 0) then
