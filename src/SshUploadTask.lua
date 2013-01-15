@@ -20,16 +20,18 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 	local progressScope = exportContext:configureProgress {	title = "Uploading photo(s) to " .. exportContext.propertyTable["host"] .. " over SSH" }
 	local identityKey = exportContext.propertyTable["identity"]
 	local sshTarget = exportContext.propertyTable["user"] .. "@" .. exportContext.propertyTable["host"]
+	local collectionPath = remoteCollectionPath(exportContext.propertyTable["destination_path"], exportContext.publishedCollectionInfo["name"])
+	local sshMkdirStatus = LrTasks.execute("ssh -i " .. identityKey .. " " .. sshTarget .. " 'mkdir -p \"" .. collectionPath .. "\"'")
+	if sshMkdirStatus == 0 then
+		exportContext.exportSession:recordRemoteCollectionId(exportContext.publishedCollectionInfo["name"])
+	else
+		error("Remote folder creation failed for collection " .. exportContext.publishedCollectionInfo["name"]
+				.. ". ssh exit status was '" .. sshMkdirStatus .. "'. Consult the Lightroom log for details.")
+	end
 	for i, rendition in exportContext:renditions { stopIfCanceled = true } do
 		local success, pathOrMessage = rendition:waitForRender()
 		if progressScope:isCanceled() then break end
 		if success then
-			local collectionPath = remoteCollectionPath(exportContext.propertyTable["destination_path"], exportContext.publishedCollectionInfo["name"])
-			local sshMkdirStatus = LrTasks.execute("ssh -i " .. identityKey .. " " .. sshTarget .. " 'mkdir -p \"" .. collectionPath .. "\"'")
-			if sshMkdirStatus ~= 0 then
-				rendition:uploadFailed("Transfer (collection creation) failure, ssh exit status was " .. sshMkdirStatus)
-			end
-
 			local firstContainingCollection = rendition.photo:getContainedPublishedCollections()[1]
 			if firstContainingCollection and firstContainingCollection ~= exportContext.publishedCollection then
 				-- Assuming that the reported published collections containing this photo appear in the order they are
