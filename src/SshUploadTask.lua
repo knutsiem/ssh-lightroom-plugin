@@ -64,3 +64,18 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 	end
 	progressScope:done()
 end
+
+function SshUploadTask.deletePhotosFromPublishedCollection( publishSettings, arrayOfPhotoIds, deletedCallback, localCollectionId )
+	local identityKey = publishSettings["identity"]
+	local sshTarget = publishSettings["user"] .. "@" .. publishSettings["host"]
+	for i, remotePhotoId in ipairs(arrayOfPhotoIds) do
+		local sshRmCommand = "ssh -i " .. identityKey .. " " .. sshTarget .. " 'rm \"" .. remotePhotoId .. "\"'"
+		logger:debugf("Deleting photo with remoteId %s from collection %s: %s", remotePhotoId, localCollectionId, sshRmCommand)
+		local sshRmStatus = LrTasks.execute(sshRmCommand)
+		if (sshRmStatus ~= 0) then
+			logger:errorf("Could not delete photo with remote ID %s from remote host using %q. Returned status code: %q",
+					remotePhotoId, sshRmCommand)
+		end
+		deletedCallback(remotePhotoId)
+	end
+end
