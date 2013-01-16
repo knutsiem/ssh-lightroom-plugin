@@ -97,3 +97,23 @@ function SshUploadTask.deletePublishedCollection (publishSettings, info)
 		error("Failed to delete published collection '" .. info.name .. "' from remote service.")
 	end
 end
+
+function SshUploadTask.renamePublishedCollection( publishSettings, info )
+	local identityKey = publishSettings["identity"]
+	local sshTarget = publishSettings["user"] .. "@" .. publishSettings["host"]
+	local remoteCollectionSourcePath = remoteCollectionPath(publishSettings["destination_path"], info.remoteId)
+	local remoteCollectionDestinationPath = remoteCollectionPath(publishSettings["destination_path"], info.name)
+	local sshMvCommand = "ssh -i " .. identityKey .. " " .. sshTarget .. " 'rm -rf \"" .. remoteCollectionDestinationPath
+			.. "\" && mv \"" .. remoteCollectionSourcePath .. "\" \"" .. remoteCollectionDestinationPath .. "\"'"
+	logger:debugf("Renaming published collection %q to %q: %s", info.publishedCollection:getName(), info.name, sshMvCommand)
+	local sshMvStatus = LrTasks.execute(sshMvCommand)
+	if (sshMvStatus ~= 0) then
+		logger:errorf("Could not rename published collection %q to %q using %q. Returned status code: %q",
+				info.publishedCollection:getName(), sshMvCommand, sshMvStatus)
+		error("Failed to rename published collection '" .. info.publishedCollection:getName() .. "' to '" .. info.name
+				.. "' in remote service.")
+	end
+	info.publishService.catalog:withWriteAccessDo("Update published collection state", function(context)
+			info.publishedCollection:setRemoteId(info.name)
+	end)
+end

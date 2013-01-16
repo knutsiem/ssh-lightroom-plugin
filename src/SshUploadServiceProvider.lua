@@ -16,5 +16,6 @@ return {
 	processRenderedPhotos = SshUploadTask.processRenderedPhotos,
 	deletePhotosFromPublishedCollection =  SshUploadTask.deletePhotosFromPublishedCollection,
 	deletePublishedCollection = SshUploadTask.deletePublishedCollection,
+	renamePublishedCollection = SshUploadTask.renamePublishedCollection,
 	supportsIncrementalPublish = true
 }
