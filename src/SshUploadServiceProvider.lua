@@ -2,6 +2,9 @@ require "SshUploadTask"
 require "SshUploadServiceProviderDialogSections"
 
 return {
+	supportsIncrementalPublish = true,
+	startDialog = nil,
+	sectionsForTopOfDialog = SshUploadServiceProviderDialogSections.topSections,
 	hideSections = { 'exportLocation' },
 	allowFileFormats = nil,
 	allowColorSpaces = nil,
@@ -11,11 +14,8 @@ return {
 		{ key = 'identity', default = nil },
 		{ key = 'destination_path', default = nil }
 	},
-	startDialog = nil,
-	sectionsForTopOfDialog = SshUploadServiceProviderDialogSections.topSections,
 	processRenderedPhotos = SshUploadTask.processRenderedPhotos,
 	deletePhotosFromPublishedCollection =  SshUploadTask.deletePhotosFromPublishedCollection,
 	deletePublishedCollection = SshUploadTask.deletePublishedCollection,
 	renamePublishedCollection = SshUploadTask.renamePublishedCollection,
-	supportsIncrementalPublish = true
 }
