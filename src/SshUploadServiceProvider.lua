@@ -15,5 +15,6 @@ return {
 	sectionsForTopOfDialog = SshUploadServiceProviderDialogSections.topSections,
 	processRenderedPhotos = SshUploadTask.processRenderedPhotos,
 	deletePhotosFromPublishedCollection =  SshUploadTask.deletePhotosFromPublishedCollection,
+	deletePublishedCollection = SshUploadTask.deletePublishedCollection,
 	supportsIncrementalPublish = true
 }
