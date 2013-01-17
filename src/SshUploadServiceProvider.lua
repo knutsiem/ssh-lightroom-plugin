@@ -21,4 +21,5 @@ return {
 	titleForPublishedCollection = "Published Folder",
 	titleForPublishedCollectionSet = "Published Folder Set",
 	titleForPublishedSmartCollection = "Published Smart Folder",
+	titleForGoToPublishedCollection = "disable",
 }
