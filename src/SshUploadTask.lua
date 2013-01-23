@@ -113,7 +113,10 @@ function SshUploadTask.renamePublishedCollection( publishSettings, info )
 		error("Failed to rename published collection '" .. info.publishedCollection:getName() .. "' to '" .. info.name
 				.. "' in remote service.")
 	end
-	info.publishService.catalog:withWriteAccessDo("Update published collection state", function(context)
+	info.publishService.catalog:withWriteAccessDo("Update remote ID of published collection and its photos", function(context)
 			info.publishedCollection:setRemoteId(info.name)
+			for _, publishedPhoto in ipairs(info.publishedCollection:getPublishedPhotos()) do
+				publishedPhoto:setRemoteId(string.gsub(publishedPhoto:getRemoteId(), "[^/]+", info.name , 1))
+			end
 	end)
 end
