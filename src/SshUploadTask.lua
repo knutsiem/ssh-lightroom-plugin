@@ -40,9 +40,9 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 				.. ". ssh exit status was '" .. sshMkdirStatus .. "'. Consult the Lightroom log for details.")
 	end
 	for i, rendition in exportContext:renditions { stopIfCanceled = true } do
-		local success, pathOrMessage = rendition:waitForRender()
+		local renderSuccess, pathOrMessage = rendition:waitForRender()
 		if progressScope:isCanceled() then break end
-		if success then
+		if renderSuccess then
 			local firstContainingCollection = rendition.photo:getContainedPublishedCollections()[1]
 			if firstContainingCollection and firstContainingCollection ~= exportContext.publishedCollection then
 				-- Assuming that the reported published collections containing this photo appear in the order they are
