@@ -2,12 +2,12 @@ return {
 
 	LrSdkVersion = 4.0,
 
-	LrToolkitIdentifier = 'net.knutsiem.drypublish',
+	LrToolkitIdentifier = 'net.knutsiem.ssh',
 
-	LrPluginName = LOC "$$$/DRYPublish/PluginName=DRY Collection Publisher",
+	LrPluginName = LOC "$$$/SSH/PluginName=SSH Plugin",
 
 	LrExportServiceProvider = {
-		title = "SSH Upload",
+		title = "SSH",
 		file = 'SshUploadServiceProvider.lua',
 	},
 
