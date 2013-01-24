@@ -121,6 +121,7 @@ function SshUploadTask.deletePublishedCollection (publishSettings, info)
 end
 
 function SshUploadTask.renamePublishedCollection( publishSettings, info )
+	if not info.remoteId then return end
 	local remoteCollectionSourcePath = remoteCollectionPath(publishSettings["destination_path"], info.remoteId)
 	local remoteCollectionDestinationPath = remoteCollectionPath(publishSettings["destination_path"], info.name)
 	local sshMvCommand = sshCmd(publishSettings, string.format("rm -rf \"%s\" && mv \"%s\" \"%s\"",
