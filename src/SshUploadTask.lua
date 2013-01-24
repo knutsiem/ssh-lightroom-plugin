@@ -102,7 +102,7 @@ end
 function SshUploadTask.deletePhotosFromPublishedCollection( publishSettings, arrayOfPhotoIds, deletedCallback, localCollectionId )
 	for i, remotePhotoId in ipairs(arrayOfPhotoIds) do
 		local remotePhotoPath = remoteCollectionPath(publishSettings["destination_path"], remotePhotoId)
-		local sshRmCommand = sshCmd(publishSettings, string.format("rm \"%s\"", encodeForShell(remotePhotoPath)))
+		local sshRmCommand = sshCmd(publishSettings, string.format("rm -f \"%s\"", encodeForShell(remotePhotoPath)))
 		logger:debugf("Deleting photo with remote ID %s from collection %s: %s", remotePhotoId, localCollectionId, sshRmCommand)
 		local sshRmStatus = LrTasks.execute(sshRmCommand)
 		if (sshRmStatus ~= 0) then
