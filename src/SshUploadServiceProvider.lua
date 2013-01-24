@@ -22,4 +22,5 @@ return {
 	titleForPublishedCollectionSet = "Published Folder Set",
 	titleForPublishedSmartCollection = "Published Smart Folder",
 	titleForGoToPublishedCollection = "disable",
+	validatePublishedCollectionName = SshUploadTask.validatePublishedCollectionName,
 }

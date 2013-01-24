@@ -147,3 +147,7 @@ function SshUploadTask.renamePublishedCollection( publishSettings, info )
 			end
 	end)
 end
+
+function SshUploadTask.validatePublishedCollectionName( proposedName )
+	return not proposedName:find("/") and not proposedName:find("\0")
+end
