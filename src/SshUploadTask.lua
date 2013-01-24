@@ -143,7 +143,7 @@ function SshUploadTask.renamePublishedCollection( publishSettings, info )
 	info.publishService.catalog:withWriteAccessDo("Update remote ID of published collection and its photos", function(context)
 			info.publishedCollection:setRemoteId(info.name)
 			for _, publishedPhoto in ipairs(info.publishedCollection:getPublishedPhotos()) do
-				publishedPhoto:setRemoteId(string.gsub(publishedPhoto:getRemoteId(), "[^/]+", info.name , 1))
+				publishedPhoto:setRemoteId(publishedPhoto:getRemoteId():gsub("[^/]+", info.name , 1))
 			end
 	end)
 end
