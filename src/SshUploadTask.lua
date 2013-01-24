@@ -57,6 +57,12 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 					end
 				end
 			end
+			local remoteFilename = rendition.photo:getFormattedMetadata("fileName")
+			if rendition.photo:getRawMetadata("isVirtualCopy") then
+				local copyname = rendition.photo:getFormattedMetadata("copyName")
+				remoteFilename = LrPathUtils.addExtension(LrPathUtils.removeExtension(remoteFilename) .. "_" .. copyname,
+					LrPathUtils.extension(remoteFilename))
+			end
 			if alreadyPublishedPhoto then
 				local linkTarget = remoteCollectionPath(exportContext.propertyTable["destination_path"], alreadyPublishedPhoto:getRemoteId())
 				local sshLnCommand = sshCmd(exportContext.propertyTable, string.format("ln -f \"%s\" \"%s\"", encodeForShell(linkTarget), encodeForShell(collectionPath)))
@@ -68,14 +74,14 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 					break
 				end
 			else
-				local sshRmCommand = sshCmd(exportContext.propertyTable, string.format("rm -f \"%s\"", encodeForShell(collectionPath.."/"..LrPathUtils.leafName(rendition.destinationPath))))
+				local sshRmCommand = sshCmd(exportContext.propertyTable, string.format("rm -f \"%s\"", encodeForShell(collectionPath .. "/" .. remoteFilename)))
 				logger:debugf("Deleting photo %s before uploading to break hardlink: %s", rendition.photo.localIdentifier, sshRmCommand)
 				local sshRmStatus = LrTasks.execute(sshRmCommand)
 				if sshRmStatus ~= 0 then
 					rendition:uploadFailed("Transfer (copy) failure. Tried to remove target file if it existed, but failed. ssh exit status was " .. sshRmStatus)
 					break
 				end
-				local scpCommand = scpCmd(exportContext.propertyTable, rendition.destinationPath, encodeForShell(collectionPath))
+				local scpCommand = scpCmd(exportContext.propertyTable, rendition.destinationPath, encodeForShell(collectionPath .. "/" .. remoteFilename ))
 				logger:debugf("Uploading photo %s: %s", rendition.photo.localIdentifier, scpCommand)
 				local scpStatus = LrTasks.execute(scpCommand)
 				if (scpStatus ~= 0) then
@@ -84,7 +90,7 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 				end
 			end
 
-			rendition:recordPublishedPhotoId(exportContext.publishedCollectionInfo["name"] .. "/" .. LrPathUtils.leafName(rendition.destinationPath))
+			rendition:recordPublishedPhotoId(exportContext.publishedCollectionInfo["name"] .. "/" .. remoteFilename)
 		else
 			-- render failure
 			rendition:uploadFailed(pathOrMessage)
