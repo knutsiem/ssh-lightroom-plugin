@@ -43,14 +43,22 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 		local renderSuccess, pathOrMessage = rendition:waitForRender()
 		if progressScope:isCanceled() then break end
 		if renderSuccess then
-			local firstContainingCollection = rendition.photo:getContainedPublishedCollections()[1]
-			if firstContainingCollection and firstContainingCollection ~= exportContext.publishedCollection then
-				-- Assuming that the reported published collections containing this photo appear in the order they are
-				-- published if multiple collections or a set is selected for publishing. 
-				-- Also assuming that an already published rendition of a photo (in another published collection) will
-				-- share its remote filename with the current rendition of the same photo as they are processed by the
-				-- same publish service configuration
-				local linkTarget = remoteCollectionPath(exportContext.propertyTable["destination_path"], firstContainingCollection:getName()) .. "/" .. LrPathUtils.leafName(rendition.destinationPath)
+			-- Loop over the published collections that contains this photo to find a non-modified/up-to-date
+			-- published-photo to link to on the remote side. If none exist, upload.
+			local alreadyPublishedPhoto = nil
+			for _, publishedCollection in ipairs(rendition.photo:getContainedPublishedCollections()) do
+				if alreadyPublishedPhoto then break end
+				if publishedCollection ~= exportContext.publishedCollection then
+					for __, publishedPhoto in ipairs(publishedCollection:getPublishedPhotos()) do
+						if publishedPhoto:getPhoto() == rendition.photo and not publishedPhoto:getEditedFlag() then
+							alreadyPublishedPhoto = publishedPhoto
+							break
+						end
+					end
+				end
+			end
+			if alreadyPublishedPhoto then
+				local linkTarget = remoteCollectionPath(exportContext.propertyTable["destination_path"], alreadyPublishedPhoto:getRemoteId())
 				local sshLnCommand = sshCmd(exportContext.propertyTable, string.format("ln -f \"%s\" \"%s\"", encodeForShell(linkTarget), encodeForShell(collectionPath)))
 				logger:debugf("Photo %s has already been published. Linking to it: %s",
 						rendition.photo.localIdentifier, sshLnCommand)
@@ -60,6 +68,13 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 					break
 				end
 			else
+				local sshRmCommand = sshCmd(exportContext.propertyTable, string.format("rm -f \"%s\"", encodeForShell(collectionPath.."/"..LrPathUtils.leafName(rendition.destinationPath))))
+				logger:debugf("Deleting photo %s before uploading to break hardlink: %s", rendition.photo.localIdentifier, sshRmCommand)
+				local sshRmStatus = LrTasks.execute(sshRmCommand)
+				if sshRmStatus ~= 0 then
+					rendition:uploadFailed("Transfer (copy) failure. Tried to remove target file if it existed, but failed. ssh exit status was " .. sshRmStatus)
+					break
+				end
 				local scpCommand = scpCmd(exportContext.propertyTable, rendition.destinationPath, encodeForShell(collectionPath))
 				logger:debugf("Uploading photo %s: %s", rendition.photo.localIdentifier, scpCommand)
 				local scpStatus = LrTasks.execute(scpCommand)
