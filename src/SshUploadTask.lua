@@ -115,6 +115,7 @@ function SshUploadTask.deletePhotosFromPublishedCollection( publishSettings, arr
 end
 
 function SshUploadTask.deletePublishedCollection (publishSettings, info)
+	if not info.remoteId then return end
 	local remoteCollectionPath = remoteCollectionPath(publishSettings["destination_path"], info.remoteId)
 	local sshRmCommand = sshCmd(publishSettings, string.format("rm -r \"%s\"", encodeForShell(remoteCollectionPath)))
 	logger:debugf("Deleting published collection %q: %s", info.name, sshRmCommand)
