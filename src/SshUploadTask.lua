@@ -19,11 +19,13 @@ local function scpCmd(settings, source, destination)
 	return "scp -i " .. settings["identity"] .. " " .. source .. " " .. settings["user"] .. "@" .. settings["host"] .. ":'\"" .. destination .. "\"'"
 end
 
-local function remoteCollectionPath(path, dir)
-	if path then
-		if path == "" then return dir else return path .. "/" .. dir end
-	else
-		return dir
+local function remotePathTransformer(baseDir)
+	return function(path)
+		if not baseDir or baseDir:len() == 0 then
+			return path
+		else
+			return baseDir .. "/" .. path
+		end
 	end
 end
 
@@ -31,7 +33,8 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 	logger:debugf("Exporting/publishing collection %q with %s photos",
 			exportContext.publishedCollectionInfo["name"], exportContext.exportSession:countRenditions())
 	local progressScope = exportContext:configureProgress {	title = "Uploading photo(s) to " .. exportContext.propertyTable["host"] .. " over SSH" }
-	local collectionPath = remoteCollectionPath(exportContext.propertyTable["destination_path"], exportContext.publishedCollectionInfo["name"])
+	local remotePath = remotePathTransformer(exportContext.propertyTable["destination_path"])
+	local collectionPath = remotePath(exportContext.publishedCollectionInfo["name"])
 	local sshMkdirStatus = LrTasks.execute(sshCmd(exportContext.propertyTable, string.format("mkdir -p \"%s\"", encodeForShell(collectionPath))))
 	if sshMkdirStatus == 0 then
 		exportContext.exportSession:recordRemoteCollectionId(exportContext.publishedCollectionInfo["name"])
@@ -64,7 +67,7 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 					LrPathUtils.extension(remoteFilename))
 			end
 			if alreadyPublishedPhoto then
-				local linkTarget = remoteCollectionPath(exportContext.propertyTable["destination_path"], alreadyPublishedPhoto:getRemoteId())
+				local linkTarget = remotePath(alreadyPublishedPhoto:getRemoteId())
 				local sshLnCommand = sshCmd(exportContext.propertyTable, string.format("ln -f \"%s\" \"%s\"", encodeForShell(linkTarget), encodeForShell(collectionPath)))
 				logger:debugf("Photo %s has already been published. Linking to it: %s",
 						rendition.photo.localIdentifier, sshLnCommand)
@@ -101,7 +104,7 @@ end
 
 function SshUploadTask.deletePhotosFromPublishedCollection( publishSettings, arrayOfPhotoIds, deletedCallback, localCollectionId )
 	for i, remotePhotoId in ipairs(arrayOfPhotoIds) do
-		local remotePhotoPath = remoteCollectionPath(publishSettings["destination_path"], remotePhotoId)
+		local remotePhotoPath = remotePathTransformer(publishSettings["destination_path"])(remotePhotoId)
 		local sshRmCommand = sshCmd(publishSettings, string.format("rm -f \"%s\"", encodeForShell(remotePhotoPath)))
 		logger:debugf("Deleting photo with remote ID %s from collection %s: %s", remotePhotoId, localCollectionId, sshRmCommand)
 		local sshRmStatus = LrTasks.execute(sshRmCommand)
@@ -116,7 +119,7 @@ end
 
 function SshUploadTask.deletePublishedCollection (publishSettings, info)
 	if not info.remoteId then return end
-	local remoteCollectionPath = remoteCollectionPath(publishSettings["destination_path"], info.remoteId)
+	local remoteCollectionPath = remotePathTransformer(publishSettings["destination_path"])(info.remoteId)
 	local sshRmCommand = sshCmd(publishSettings, string.format("rm -r \"%s\"", encodeForShell(remoteCollectionPath)))
 	logger:debugf("Deleting published collection %q: %s", info.name, sshRmCommand)
 	local sshRmStatus = LrTasks.execute(sshRmCommand)
@@ -129,8 +132,9 @@ end
 
 function SshUploadTask.renamePublishedCollection( publishSettings, info )
 	if not info.remoteId then return end
-	local remoteCollectionSourcePath = remoteCollectionPath(publishSettings["destination_path"], info.remoteId)
-	local remoteCollectionDestinationPath = remoteCollectionPath(publishSettings["destination_path"], info.name)
+	local remotePath = remotePathTransformer(publishSettings["destination_path"])
+	local remoteCollectionSourcePath = remotePath(info.remoteId)
+	local remoteCollectionDestinationPath = remotePath(info.name)
 	local sshMvCommand = sshCmd(publishSettings, string.format("rm -rf \"%s\" && mv \"%s\" \"%s\"",
 			encodeForShell(remoteCollectionDestinationPath), encodeForShell(remoteCollectionSourcePath), encodeForShell(remoteCollectionDestinationPath)))
 	logger:debugf("Renaming published collection %q to %q: %s", info.publishedCollection:getName(), info.name, sshMvCommand)
