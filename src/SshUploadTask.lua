@@ -126,12 +126,12 @@ function SshUploadTask.deletePublishedCollection (publishSettings, info)
 	if not info.remoteId then return end
 	local sshSupport = SshSupport(publishSettings)
 	local remoteCollectionPath = sshSupport.remotePath(info.remoteId)
-	local sshRmCommand = sshSupport.sshCmd(string.format("rm -r \"%s\"", encodeForShell(remoteCollectionPath)))
-	logger:debugf("Deleting published collection %q: %s", info.name, sshRmCommand)
-	local sshRmStatus = exec(sshRmCommand)
-	if sshRmStatus ~= 0 then
+	local command = sshSupport.sshCmd(string.format("rm -r \"%s\"", encodeForShell(remoteCollectionPath)))
+	logger:debugf("Deleting published collection %q: %s", info.name, command)
+	local status = exec(command)
+	if status ~= 0 then
 		logger:errorf("Could not delete published collection %q from remote host using %q. Returned status code: %q",
-				info.name, sshRmCommand, sshRmStatus)
+				info.name, command, status)
 		error("Failed to delete published collection '" .. info.name .. "' from remote service.")
 	end
 end
