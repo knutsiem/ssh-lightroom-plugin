@@ -1,4 +1,5 @@
 local LrTasks = import "LrTasks"
+local exec = LrTasks.execute
 local LrPathUtils = import "LrPathUtils"
 local LrLogger = import 'LrLogger'
 local logger = LrLogger('sshUploadLogger')
@@ -38,7 +39,7 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 	local progressScope = exportContext:configureProgress {	title = "Uploading photo(s) to " .. exportContext.propertyTable["host"] .. " over SSH" }
 	local sshSupport = SshSupport(exportContext.propertyTable)
 	local collectionPath = sshSupport.remotePath(exportContext.publishedCollectionInfo["name"])
-	local sshMkdirStatus = LrTasks.execute(sshSupport.sshCmd(string.format("mkdir -p \"%s\"", encodeForShell(collectionPath))))
+	local sshMkdirStatus = exec(sshSupport.sshCmd(string.format("mkdir -p \"%s\"", encodeForShell(collectionPath))))
 	if sshMkdirStatus == 0 then
 		exportContext.exportSession:recordRemoteCollectionId(exportContext.publishedCollectionInfo["name"])
 	else
@@ -74,7 +75,7 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 				local sshLnCommand = sshSupport.sshCmd(string.format("ln -f \"%s\" \"%s\"", encodeForShell(linkTarget), encodeForShell(collectionPath)))
 				logger:debugf("Photo %s has already been published. Linking to it: %s",
 						rendition.photo.localIdentifier, sshLnCommand)
-				local sshLnStatus = LrTasks.execute(sshLnCommand)
+				local sshLnStatus = exec(sshLnCommand)
 				if (sshLnStatus ~= 0) then
 					rendition:uploadFailed("Transfer (link) failure, ssh exit status was " .. sshLnStatus)
 					break
@@ -82,14 +83,14 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 			else
 				local sshRmCommand = sshSupport.sshCmd(string.format("rm -f \"%s\"", encodeForShell(collectionPath .. "/" .. remoteFilename)))
 				logger:debugf("Deleting photo %s before uploading to break hardlink: %s", rendition.photo.localIdentifier, sshRmCommand)
-				local sshRmStatus = LrTasks.execute(sshRmCommand)
+				local sshRmStatus = exec(sshRmCommand)
 				if sshRmStatus ~= 0 then
 					rendition:uploadFailed("Transfer (copy) failure. Tried to remove target file if it existed, but failed. ssh exit status was " .. sshRmStatus)
 					break
 				end
 				local scpCommand = sshSupport.scpCmd(rendition.destinationPath, encodeForShell(collectionPath .. "/" .. remoteFilename ))
 				logger:debugf("Uploading photo %s: %s", rendition.photo.localIdentifier, scpCommand)
-				local scpStatus = LrTasks.execute(scpCommand)
+				local scpStatus = exec(scpCommand)
 				if (scpStatus ~= 0) then
 					rendition:uploadFailed("Transfer (copy) failure, scp exit status was " .. scpStatus)
 					break
@@ -111,7 +112,7 @@ function SshUploadTask.deletePhotosFromPublishedCollection( publishSettings, arr
 		local remotePhotoPath = sshSupport.remotePath(remotePhotoId)
 		local sshRmCommand = sshSupport.sshCmd(string.format("rm -f \"%s\"", encodeForShell(remotePhotoPath)))
 		logger:debugf("Deleting photo with remote ID %s from collection %s: %s", remotePhotoId, localCollectionId, sshRmCommand)
-		local sshRmStatus = LrTasks.execute(sshRmCommand)
+		local sshRmStatus = exec(sshRmCommand)
 		if (sshRmStatus ~= 0) then
 			logger:errorf("Could not delete photo with remote ID %s from remote host using %q. Returned status code: %q",
 					remotePhotoId, sshRmCommand, sshRmStatus)
@@ -127,7 +128,7 @@ function SshUploadTask.deletePublishedCollection (publishSettings, info)
 	local remoteCollectionPath = sshSupport.remotePath(info.remoteId)
 	local sshRmCommand = sshSupport.sshCmd(string.format("rm -r \"%s\"", encodeForShell(remoteCollectionPath)))
 	logger:debugf("Deleting published collection %q: %s", info.name, sshRmCommand)
-	local sshRmStatus = LrTasks.execute(sshRmCommand)
+	local sshRmStatus = exec(sshRmCommand)
 	if (sshRmStatus ~= 0) then
 		logger:errorf("Could not delete published collection %q from remote host using %q. Returned status code: %q",
 				info.name, sshRmCommand, sshRmStatus)
@@ -143,7 +144,7 @@ function SshUploadTask.renamePublishedCollection( publishSettings, info )
 	local sshMvCommand = sshSupport.sshCmd(string.format("rm -rf \"%s\" && mv \"%s\" \"%s\"",
 			encodeForShell(remoteCollectionDestinationPath), encodeForShell(remoteCollectionSourcePath), encodeForShell(remoteCollectionDestinationPath)))
 	logger:debugf("Renaming published collection %q to %q: %s", info.publishedCollection:getName(), info.name, sshMvCommand)
-	local sshMvStatus = LrTasks.execute(sshMvCommand)
+	local sshMvStatus = exec(sshMvCommand)
 	if (sshMvStatus ~= 0) then
 		logger:errorf("Could not rename published collection %q to %q using %q. Returned status code: %q",
 				info.publishedCollection:getName(), sshMvCommand, sshMvStatus)
