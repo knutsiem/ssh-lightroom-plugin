@@ -76,7 +76,7 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 				logger:debugf("Photo %s has already been published. Linking to it: %s",
 						rendition.photo.localIdentifier, sshLnCommand)
 				local sshLnStatus = exec(sshLnCommand)
-				if (sshLnStatus ~= 0) then
+				if sshLnStatus ~= 0 then
 					rendition:uploadFailed("Transfer (link) failure, ssh exit status was " .. sshLnStatus)
 					break
 				end
@@ -91,7 +91,7 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 				local scpCommand = sshSupport.scpCmd(rendition.destinationPath, encodeForShell(collectionPath .. "/" .. remoteFilename ))
 				logger:debugf("Uploading photo %s: %s", rendition.photo.localIdentifier, scpCommand)
 				local scpStatus = exec(scpCommand)
-				if (scpStatus ~= 0) then
+				if scpStatus ~= 0 then
 					rendition:uploadFailed("Transfer (copy) failure, scp exit status was " .. scpStatus)
 					break
 				end
@@ -113,7 +113,7 @@ function SshUploadTask.deletePhotosFromPublishedCollection( publishSettings, arr
 		local sshRmCommand = sshSupport.sshCmd(string.format("rm -f \"%s\"", encodeForShell(remotePhotoPath)))
 		logger:debugf("Deleting photo with remote ID %s from collection %s: %s", remotePhotoId, localCollectionId, sshRmCommand)
 		local sshRmStatus = exec(sshRmCommand)
-		if (sshRmStatus ~= 0) then
+		if sshRmStatus ~= 0 then
 			logger:errorf("Could not delete photo with remote ID %s from remote host using %q. Returned status code: %q",
 					remotePhotoId, sshRmCommand, sshRmStatus)
 			error("Failed to delete published photo with remote ID '".. remotePhotoId .. "' from remote service.")
@@ -129,7 +129,7 @@ function SshUploadTask.deletePublishedCollection (publishSettings, info)
 	local sshRmCommand = sshSupport.sshCmd(string.format("rm -r \"%s\"", encodeForShell(remoteCollectionPath)))
 	logger:debugf("Deleting published collection %q: %s", info.name, sshRmCommand)
 	local sshRmStatus = exec(sshRmCommand)
-	if (sshRmStatus ~= 0) then
+	if sshRmStatus ~= 0 then
 		logger:errorf("Could not delete published collection %q from remote host using %q. Returned status code: %q",
 				info.name, sshRmCommand, sshRmStatus)
 		error("Failed to delete published collection '" .. info.name .. "' from remote service.")
@@ -145,7 +145,7 @@ function SshUploadTask.renamePublishedCollection( publishSettings, info )
 			encodeForShell(remoteCollectionDestinationPath), encodeForShell(remoteCollectionSourcePath), encodeForShell(remoteCollectionDestinationPath)))
 	logger:debugf("Renaming published collection %q to %q: %s", info.publishedCollection:getName(), info.name, sshMvCommand)
 	local sshMvStatus = exec(sshMvCommand)
-	if (sshMvStatus ~= 0) then
+	if sshMvStatus ~= 0 then
 		logger:errorf("Could not rename published collection %q to %q using %q. Returned status code: %q",
 				info.publishedCollection:getName(), sshMvCommand, sshMvStatus)
 		error("Failed to rename published collection '" .. info.publishedCollection:getName() .. "' to '" .. info.name
