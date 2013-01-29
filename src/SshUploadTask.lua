@@ -34,8 +34,8 @@ local function SshSupport(settings)
 end
 
 function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
-	logger:debugf("Exporting/publishing collection %q with %s photos",
-			exportContext.publishedCollectionInfo["name"], exportContext.exportSession:countRenditions())
+	logger:debugf("Exporting/publishing %s photos in collection '%s'",
+			exportContext.exportSession:countRenditions(), exportContext.publishedCollectionInfo["name"])
 	local progressScope = exportContext:configureProgress {	title = "Uploading photo(s) to " .. exportContext.propertyTable["host"] .. " over SSH" }
 	local sshSupport = SshSupport(exportContext.propertyTable)
 	local collectionPath = sshSupport.remotePath(exportContext.publishedCollectionInfo["name"])
