@@ -139,15 +139,15 @@ end
 function SshUploadTask.renamePublishedCollection( publishSettings, info )
 	if not info.remoteId then return end
 	local sshSupport = SshSupport(publishSettings)
-	local remoteCollectionSourcePath = sshSupport.remotePath(info.remoteId)
-	local remoteCollectionDestinationPath = sshSupport.remotePath(info.name)
-	local sshMvCommand = sshSupport.sshCmd(string.format("rm -rf \"%s\" && mv \"%s\" \"%s\"",
-			encodeForShell(remoteCollectionDestinationPath), encodeForShell(remoteCollectionSourcePath), encodeForShell(remoteCollectionDestinationPath)))
-	logger:debugf("Renaming published collection %q to %q: %s", info.publishedCollection:getName(), info.name, sshMvCommand)
-	local sshMvStatus = exec(sshMvCommand)
-	if sshMvStatus ~= 0 then
+	local remoteSourcePath = sshSupport.remotePath(info.remoteId)
+	local remoteDestinationPath = sshSupport.remotePath(info.name)
+	local command = sshSupport.sshCmd(string.format("rm -rf \"%s\" && mv \"%s\" \"%s\"",
+			encodeForShell(remoteDestinationPath), encodeForShell(remoteSourcePath), encodeForShell(remoteDestinationPath)))
+	logger:debugf("Renaming published collection %q to %q: %s", info.publishedCollection:getName(), info.name, command)
+	local status = exec(command)
+	if status ~= 0 then
 		logger:errorf("Could not rename published collection %q to %q using %q. Returned status code: %q",
-				info.publishedCollection:getName(), sshMvCommand, sshMvStatus)
+				info.publishedCollection:getName(), command, status)
 		error("Failed to rename published collection '" .. info.publishedCollection:getName() .. "' to '" .. info.name
 				.. "' in remote service.")
 	end
