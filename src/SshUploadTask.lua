@@ -110,12 +110,12 @@ function SshUploadTask.deletePhotosFromPublishedCollection( publishSettings, arr
 	local sshSupport = SshSupport(publishSettings)
 	for i, remotePhotoId in ipairs(arrayOfPhotoIds) do
 		local remotePhotoPath = sshSupport.remotePath(remotePhotoId)
-		local sshRmCommand = sshSupport.sshCmd(string.format("rm -f \"%s\"", encodeForShell(remotePhotoPath)))
-		logger:debugf("Deleting photo with remote ID %s from collection %s: %s", remotePhotoId, localCollectionId, sshRmCommand)
-		local sshRmStatus = exec(sshRmCommand)
-		if sshRmStatus ~= 0 then
+		local command = sshSupport.sshCmd(string.format("rm -f \"%s\"", encodeForShell(remotePhotoPath)))
+		logger:debugf("Deleting photo with remote ID %s from collection %s: %s", remotePhotoId, localCollectionId, command)
+		local status = exec(command)
+		if status ~= 0 then
 			logger:errorf("Could not delete photo with remote ID %s from remote host using %q. Returned status code: %q",
-					remotePhotoId, sshRmCommand, sshRmStatus)
+					remotePhotoId, command, status)
 			error("Failed to delete published photo with remote ID '".. remotePhotoId .. "' from remote service.")
 		end
 		deletedCallback(remotePhotoId)
