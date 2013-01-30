@@ -38,8 +38,8 @@ local function SshSupport(settings)
 			return execute("ssh -i " .. settings["identity"] .. " " .. settings["user"] .. "@" .. settings["host"] .. " '" .. escapedCommand ..  "'")
 		end,
 
-		scpCmd = function (source, destination)
-			return "scp -i " .. settings["identity"] .. " " .. source .. " " .. settings["user"] .. "@" .. settings["host"] .. ":'\"" .. destination .. "\"'"
+		scp = function (source, destination)
+			return execute("scp -i " .. settings["identity"] .. " " .. source .. " " .. settings["user"] .. "@" .. settings["host"] .. ":'\"" .. destination .. "\"'")
 		end,
 
 		remotePath = function (path)
@@ -104,7 +104,7 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 					break
 				end
 				logger:debugf("Uploading photo %s...", rendition.photo.localIdentifier)
-				if not execute(sshSupport.scpCmd(rendition.destinationPath, encodeForShell(collectionPath .. "/" .. remoteFilename ))) then
+				if not sshSupport.scp(rendition.destinationPath, encodeForShell(collectionPath .. "/" .. remoteFilename )) then
 					rendition:uploadFailed("Transfer (copy) failure")
 					break
 				end
