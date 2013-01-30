@@ -73,20 +73,20 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 			end
 			if alreadyPublishedPhoto then
 				local linkTarget = sshSupport.remotePath(alreadyPublishedPhoto:getRemoteId())
-				local sshLnCommand = sshSupport.sshCmd(string.format("ln -f \"%s\" \"%s\"", encodeForShell(linkTarget), encodeForShell(collectionPath)))
+				local command = sshSupport.sshCmd(string.format("ln -f \"%s\" \"%s\"", encodeForShell(linkTarget), encodeForShell(collectionPath)))
 				logger:debugf("Photo %s has already been published. Linking to it: %s",
-						rendition.photo.localIdentifier, sshLnCommand)
-				local sshLnStatus = exec(sshLnCommand)
-				if sshLnStatus ~= 0 then
-					rendition:uploadFailed("Transfer (link) failure, ssh exit status was " .. sshLnStatus)
+						rendition.photo.localIdentifier, command)
+				local status = exec(command)
+				if status ~= 0 then
+					rendition:uploadFailed("Transfer (link) failure, ssh exit status was " .. status)
 					break
 				end
 			else
-				local sshRmCommand = sshSupport.sshCmd(string.format("rm -f \"%s\"", encodeForShell(collectionPath .. "/" .. remoteFilename)))
-				logger:debugf("Deleting photo %s before uploading to break hardlink: %s", rendition.photo.localIdentifier, sshRmCommand)
-				local sshRmStatus = exec(sshRmCommand)
-				if sshRmStatus ~= 0 then
-					rendition:uploadFailed("Transfer (copy) failure. Tried to remove target file if it existed, but failed. ssh exit status was " .. sshRmStatus)
+				local rmCommand = sshSupport.sshCmd(string.format("rm -f \"%s\"", encodeForShell(collectionPath .. "/" .. remoteFilename)))
+				logger:debugf("Deleting photo %s before uploading to break hardlink: %s", rendition.photo.localIdentifier, rmCommand)
+				local rmStatus = exec(rmCommand)
+				if rmStatus ~= 0 then
+					rendition:uploadFailed("Transfer (copy) failure. Tried to remove target file if it existed, but failed. ssh exit status was " .. rmStatus)
 					break
 				end
 				local scpCommand = sshSupport.scpCmd(rendition.destinationPath, encodeForShell(collectionPath .. "/" .. remoteFilename ))
