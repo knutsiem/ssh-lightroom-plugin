@@ -40,7 +40,7 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 	local sshSupport = SshSupport(exportContext.propertyTable)
 	local collectionPath = sshSupport.remotePath(exportContext.publishedCollectionInfo["name"])
 	do
-		local status = exec(sshSupport.sshCmd(string.format("mkdir -p \"%s\"", encodeForShell(collectionPath))))
+		local status = exec(sshSupport.sshCmd(string.format('mkdir -p "%s"', encodeForShell(collectionPath))))
 		if status ~= 0 then
 			error("Remote folder creation failed for collection " .. exportContext.publishedCollectionInfo["name"]
 					.. ". ssh exit status was '" .. status .. "'. Consult the Lightroom log for details.")
@@ -73,7 +73,7 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 			end
 			if alreadyPublishedPhoto then
 				local linkTarget = sshSupport.remotePath(alreadyPublishedPhoto:getRemoteId())
-				local command = sshSupport.sshCmd(string.format("ln -f \"%s\" \"%s\"", encodeForShell(linkTarget), encodeForShell(collectionPath)))
+				local command = sshSupport.sshCmd(string.format('ln -f "%s" "%s"', encodeForShell(linkTarget), encodeForShell(collectionPath)))
 				logger:debugf("Photo %s has already been published. Linking to it: %s",
 						rendition.photo.localIdentifier, command)
 				local status = exec(command)
@@ -82,7 +82,7 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 					break
 				end
 			else
-				local rmCommand = sshSupport.sshCmd(string.format("rm -f \"%s\"", encodeForShell(collectionPath .. "/" .. remoteFilename)))
+				local rmCommand = sshSupport.sshCmd(string.format('rm -f "%s"', encodeForShell(collectionPath .. "/" .. remoteFilename)))
 				logger:debugf("Deleting photo %s before uploading to break hardlink: %s", rendition.photo.localIdentifier, rmCommand)
 				local rmStatus = exec(rmCommand)
 				if rmStatus ~= 0 then
@@ -111,7 +111,7 @@ function SshUploadTask.deletePhotosFromPublishedCollection( publishSettings, arr
 	local sshSupport = SshSupport(publishSettings)
 	for i, remotePhotoId in ipairs(arrayOfPhotoIds) do
 		local remotePhotoPath = sshSupport.remotePath(remotePhotoId)
-		local command = sshSupport.sshCmd(string.format("rm -f \"%s\"", encodeForShell(remotePhotoPath)))
+		local command = sshSupport.sshCmd(string.format('rm -f "%s"', encodeForShell(remotePhotoPath)))
 		logger:debugf("Deleting photo with remote ID %s from collection %s: %s", remotePhotoId, localCollectionId, command)
 		local status = exec(command)
 		if status ~= 0 then
@@ -127,7 +127,7 @@ function SshUploadTask.deletePublishedCollection (publishSettings, info)
 	if not info.remoteId then return end
 	local sshSupport = SshSupport(publishSettings)
 	local remoteCollectionPath = sshSupport.remotePath(info.remoteId)
-	local command = sshSupport.sshCmd(string.format("rm -r \"%s\"", encodeForShell(remoteCollectionPath)))
+	local command = sshSupport.sshCmd(string.format('rm -r "%s"', encodeForShell(remoteCollectionPath)))
 	logger:debugf("Deleting published collection %q: %s", info.name, command)
 	local status = exec(command)
 	if status ~= 0 then
@@ -142,7 +142,7 @@ function SshUploadTask.renamePublishedCollection( publishSettings, info )
 	local sshSupport = SshSupport(publishSettings)
 	local remoteSourcePath = sshSupport.remotePath(info.remoteId)
 	local remoteDestinationPath = sshSupport.remotePath(info.name)
-	local command = sshSupport.sshCmd(string.format("rm -rf \"%s\" && mv \"%s\" \"%s\"",
+	local command = sshSupport.sshCmd(string.format('rm -rf "%s" && mv "%s" "%s"',
 			encodeForShell(remoteDestinationPath), encodeForShell(remoteSourcePath), encodeForShell(remoteDestinationPath)))
 	logger:debugf("Renaming published collection %q to %q: %s", info.publishedCollection:getName(), info.name, command)
 	local status = exec(command)
