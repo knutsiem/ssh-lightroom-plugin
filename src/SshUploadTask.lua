@@ -80,45 +80,46 @@ local function findAlreadyPublishedPhoto (photo, currentPublishedCollection)
 end
 
 function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
+	local collectionName = exportContext.publishedCollectionInfo["name"]
 	logger:debugf("Exporting/publishing %s photos in collection '%s'",
-			exportContext.exportSession:countRenditions(), exportContext.publishedCollectionInfo["name"])
+			exportContext.exportSession:countRenditions(), collectionName)
 	local progressScope = exportContext:configureProgress {	title = "Uploading photo(s) to " .. exportContext.propertyTable["host"] .. " over SSH" }
 	local sshSupport = SshSupport(exportContext.propertyTable)
-	local collectionPath = sshSupport.remotePath(exportContext.publishedCollectionInfo["name"])
+	local collectionPath = sshSupport.remotePath(collectionName)
 	do
 		if not sshSupport.ssh('mkdir -p "%s"', collectionPath) then
-			error("Remote folder creation failed for collection " .. exportContext.publishedCollectionInfo["name"]
-					.. ". Consult the Lightroom log for details.")
+			error("Remote folder creation failed for collection " .. collectionName	.. ". Consult the Lightroom log for details.")
 		end
-		exportContext.exportSession:recordRemoteCollectionId(exportContext.publishedCollectionInfo["name"])
+		exportContext.exportSession:recordRemoteCollectionId(collectionName)
 	end
 	for i, rendition in exportContext:renditions { stopIfCanceled = true } do
 		local renderSuccess, pathOrMessage = rendition:waitForRender()
 		if progressScope:isCanceled() then break end
 		if renderSuccess then
-			local remoteFilename = findRemoteFilename(rendition.photo)
-			local alreadyPublishedPhoto = findAlreadyPublishedPhoto(rendition.photo, exportContext.publishedCollection)
+			local photo = rendition.photo
+			local remoteFilename = findRemoteFilename(photo)
+			local alreadyPublishedPhoto = findAlreadyPublishedPhoto(photo, exportContext.publishedCollection)
 			if alreadyPublishedPhoto then
 				local linkTarget = sshSupport.remotePath(alreadyPublishedPhoto:getRemoteId())
-				logger:debugf("Photo %s has already been published. Linking to it...", rendition.photo.localIdentifier)
+				logger:debugf("Photo %s has already been published. Linking to it...", photo.localIdentifier)
 				if not sshSupport.ssh('ln -f "%s" "%s"', linkTarget, collectionPath) then
 					rendition:uploadFailed("Transfer (link) failure")
 					break
 				end
 			else
-				logger:debugf("Deleting photo %s before uploading to break hardlink...", rendition.photo.localIdentifier)
+				logger:debugf("Deleting photo %s before uploading to break hardlink...", photo.localIdentifier)
 				if not sshSupport.ssh('rm -f "%s"', collectionPath .. "/" .. remoteFilename) then
 					rendition:uploadFailed("Transfer (copy) failure. Tried to remove target file if it existed, but failed.")
 					break
 				end
-				logger:debugf("Uploading photo %s...", rendition.photo.localIdentifier)
+				logger:debugf("Uploading photo %s...", photo.localIdentifier)
 				if not sshSupport.scp(rendition.destinationPath, encodeForShell(collectionPath .. "/" .. remoteFilename )) then
 					rendition:uploadFailed("Transfer (copy) failure")
 					break
 				end
 			end
 
-			rendition:recordPublishedPhotoId(exportContext.publishedCollectionInfo["name"] .. "/" .. remoteFilename)
+			rendition:recordPublishedPhotoId(collectionName .. "/" .. remoteFilename)
 		else
 			-- render failure
 			rendition:uploadFailed(pathOrMessage)
