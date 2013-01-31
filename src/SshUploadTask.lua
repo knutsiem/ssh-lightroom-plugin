@@ -103,7 +103,7 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 				if sshSupport.ssh('ln -f "%s" "%s"', linkTarget, collectionPath) then
 					rendition:recordPublishedPhotoId(collectionName .. "/" .. remoteFilename)
 				else
-					rendition:uploadFailed("Transfer (link) failure")
+					rendition:uploadFailed "Remote link creation failure"
 				end
 			else
 				logger:debugf("Deleting photo %s before uploading to break hardlink...", photo.localIdentifier)
@@ -112,10 +112,10 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 					if sshSupport.scp(rendition.destinationPath, encodeForShell(collectionPath .. "/" .. remoteFilename )) then
 						rendition:recordPublishedPhotoId(collectionName .. "/" .. remoteFilename)
 					else
-						rendition:uploadFailed("Transfer (copy) failure")
+						rendition:uploadFailed "Upload failure"
 					end
 				else
-					rendition:uploadFailed("Transfer (copy) failure. Tried to remove target file if it existed, but failed.")
+					rendition:uploadFailed "Upload preparation failure when removing potentially existing target file."
 				end
 			end
 		else
