@@ -116,10 +116,8 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 					break
 				end
 			end
-
 			rendition:recordPublishedPhotoId(collectionName .. "/" .. remoteFilename)
 		else
-			-- render failure
 			rendition:uploadFailed(pathOrMessage)
 		end
 	end
