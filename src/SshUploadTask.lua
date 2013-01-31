@@ -100,23 +100,24 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 			if alreadyPublishedPhoto then
 				local linkTarget = sshSupport.remotePath(alreadyPublishedPhoto:getRemoteId())
 				logger:debugf("Photo %s has already been published. Linking to it...", photo.localIdentifier)
-				if not sshSupport.ssh('ln -f "%s" "%s"', linkTarget, collectionPath) then
+				if sshSupport.ssh('ln -f "%s" "%s"', linkTarget, collectionPath) then
+					rendition:recordPublishedPhotoId(collectionName .. "/" .. remoteFilename)
+				else
 					rendition:uploadFailed("Transfer (link) failure")
-					break
 				end
 			else
 				logger:debugf("Deleting photo %s before uploading to break hardlink...", photo.localIdentifier)
-				if not sshSupport.ssh('rm -f "%s"', collectionPath .. "/" .. remoteFilename) then
+				if sshSupport.ssh('rm -f "%s"', collectionPath .. "/" .. remoteFilename) then
+					logger:debugf("Uploading photo %s...", photo.localIdentifier)
+					if sshSupport.scp(rendition.destinationPath, encodeForShell(collectionPath .. "/" .. remoteFilename )) then
+						rendition:recordPublishedPhotoId(collectionName .. "/" .. remoteFilename)
+					else
+						rendition:uploadFailed("Transfer (copy) failure")
+					end
+				else
 					rendition:uploadFailed("Transfer (copy) failure. Tried to remove target file if it existed, but failed.")
-					break
-				end
-				logger:debugf("Uploading photo %s...", photo.localIdentifier)
-				if not sshSupport.scp(rendition.destinationPath, encodeForShell(collectionPath .. "/" .. remoteFilename )) then
-					rendition:uploadFailed("Transfer (copy) failure")
-					break
 				end
 			end
-			rendition:recordPublishedPhotoId(collectionName .. "/" .. remoteFilename)
 		else
 			rendition:uploadFailed(pathOrMessage)
 		end
