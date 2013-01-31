@@ -6,32 +6,34 @@ logger:enable("print")
 
 SshUploadTask = {}
 
-local function execute (command)
-	logger:debug("Executing command: " .. command)
-	local status = LrTasks.execute(command)
-	if status ~= 0 then
-		local errorMessage = string.format("Execution of %s failed with status code %s", command, status)
-		logger:error(errorMessage)
-		return false
-	end
-	return true
-end
-
 -- Encode the given string for double-quoted use in a remote Unix-like shell
 local function encodeForShell(subject)
 	return subject:gsub("%$", "\\%$"):gsub("`", "\\`"):gsub("\"", "\\\""):gsub("\\", "\\\\")
 end
 
--- Prepares a shell command template with any number of arguments, encoding the arguments for use in double quotes
-local function shellCommand (commandTemplate, ...)
-	local encodedArgs = {}
-	for i, argument in ipairs(arg) do
-		encodedArgs[i] = encodeForShell(argument)
-	end
-	return commandTemplate:format(unpack(encodedArgs))
-end
-
 local function SshSupport(settings)
+
+	-- Prepares a shell command template with any number of arguments, encoding the arguments for use in double quotes
+	local function shellCommand (commandTemplate, ...)
+		local encodedArgs = {}
+		for i, argument in ipairs(arg) do
+			encodedArgs[i] = encodeForShell(argument)
+		end
+		return commandTemplate:format(unpack(encodedArgs))
+	end
+
+	-- Execute command with LrTasks.execute. Log non-zero staus code as error. Return true on success, false on error.
+	local function execute (command)
+		logger:debug("Executing command: " .. command)
+		local status = LrTasks.execute(command)
+		if status ~= 0 then
+			local errorMessage = string.format("Execution of %s failed with status code %s", command, status)
+			logger:error(errorMessage)
+			return false
+		end
+		return true
+	end
+
 	return {
 		ssh = function(remoteCommand, ...)
 			local escapedCommand = shellCommand(remoteCommand, unpack(arg))
