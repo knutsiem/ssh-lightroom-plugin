@@ -36,14 +36,16 @@ local function SshSupport(settings)
 
 	return {
 		ssh = function(remoteCommand, ...)
+			local encodedIdentityFilePath = encodeForShell(settings["identity"])
 			local escapedCommand = shellCommand(remoteCommand, unpack(arg))
-			return execute("ssh -i " .. settings["identity"] .. " " .. settings["user"] .. "@" .. settings["host"] .. " '" .. escapedCommand ..  "'")
+			return execute("ssh -i \"" .. encodedIdentityFilePath .. "\" " .. settings["user"] .. "@" .. settings["host"] .. " '" .. escapedCommand ..  "'")
 		end,
 
 		scp = function (source, destination)
+			local encodedIdentityFilePath = encodeForShell(settings["identity"])
 			local encodedSource = encodeForShell(source)
 			local encodedDestination = encodeForShell(destination)
-			return execute("scp -i " .. settings["identity"] .. " \"" .. encodedSource .. "\" " .. settings["user"] .. "@" .. settings["host"] .. ":'\"" .. encodedDestination .. "\"'")
+			return execute("scp -i \"" .. encodedIdentityFilePath .. "\" \"" .. encodedSource .. "\" " .. settings["user"] .. "@" .. settings["host"] .. ":'\"" .. encodedDestination .. "\"'")
 		end,
 
 		remotePath = function (path)
