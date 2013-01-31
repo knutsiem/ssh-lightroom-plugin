@@ -55,6 +55,20 @@ local function SshSupport(settings)
 	}
 end
 
+-- Loop over the published collections that contains this photo to find a non-modified/up-to-date
+-- published-photo to link to on the remote side. If none exist, upload.
+local function findAlreadyPublishedPhoto (photo, currentPublishedCollection)
+	for _, publishedCollection in ipairs(photo:getContainedPublishedCollections()) do
+		if publishedCollection ~= currentPublishedCollection then
+			for __, publishedPhoto in ipairs(publishedCollection:getPublishedPhotos()) do
+				if publishedPhoto:getPhoto() == photo and not publishedPhoto:getEditedFlag() then
+					return publishedPhoto
+				end
+			end
+		end
+	end
+end
+
 function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 	logger:debugf("Exporting/publishing %s photos in collection '%s'",
 			exportContext.exportSession:countRenditions(), exportContext.publishedCollectionInfo["name"])
@@ -72,26 +86,13 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 		local renderSuccess, pathOrMessage = rendition:waitForRender()
 		if progressScope:isCanceled() then break end
 		if renderSuccess then
-			-- Loop over the published collections that contains this photo to find a non-modified/up-to-date
-			-- published-photo to link to on the remote side. If none exist, upload.
-			local alreadyPublishedPhoto = nil
-			for _, publishedCollection in ipairs(rendition.photo:getContainedPublishedCollections()) do
-				if alreadyPublishedPhoto then break end
-				if publishedCollection ~= exportContext.publishedCollection then
-					for __, publishedPhoto in ipairs(publishedCollection:getPublishedPhotos()) do
-						if publishedPhoto:getPhoto() == rendition.photo and not publishedPhoto:getEditedFlag() then
-							alreadyPublishedPhoto = publishedPhoto
-							break
-						end
-					end
-				end
-			end
 			local remoteFilename = rendition.photo:getFormattedMetadata("fileName")
 			if rendition.photo:getRawMetadata("isVirtualCopy") then
 				local copyname = rendition.photo:getFormattedMetadata("copyName")
 				remoteFilename = LrPathUtils.addExtension(LrPathUtils.removeExtension(remoteFilename) .. "_" .. copyname,
 					LrPathUtils.extension(remoteFilename))
 			end
+			local alreadyPublishedPhoto = findAlreadyPublishedPhoto(rendition.photo, exportContext.publishedCollection)
 			if alreadyPublishedPhoto then
 				local linkTarget = sshSupport.remotePath(alreadyPublishedPhoto:getRemoteId())
 				logger:debugf("Photo %s has already been published. Linking to it...", rendition.photo.localIdentifier)
