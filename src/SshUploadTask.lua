@@ -55,6 +55,16 @@ local function SshSupport(settings)
 	}
 end
 
+local function findRemoteFilename (photo)
+	local remoteFilename = photo:getFormattedMetadata("fileName")
+	if photo:getRawMetadata("isVirtualCopy") then
+		local copyname = photo:getFormattedMetadata("copyName")
+		remoteFilename = LrPathUtils.addExtension(LrPathUtils.removeExtension(remoteFilename) .. "_" .. copyname,
+			LrPathUtils.extension(remoteFilename))
+	end
+	return remoteFilename
+end
+
 -- Loop over the published collections that contains this photo to find a non-modified/up-to-date
 -- published-photo to link to on the remote side. If none exist, upload.
 local function findAlreadyPublishedPhoto (photo, currentPublishedCollection)
@@ -86,12 +96,7 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 		local renderSuccess, pathOrMessage = rendition:waitForRender()
 		if progressScope:isCanceled() then break end
 		if renderSuccess then
-			local remoteFilename = rendition.photo:getFormattedMetadata("fileName")
-			if rendition.photo:getRawMetadata("isVirtualCopy") then
-				local copyname = rendition.photo:getFormattedMetadata("copyName")
-				remoteFilename = LrPathUtils.addExtension(LrPathUtils.removeExtension(remoteFilename) .. "_" .. copyname,
-					LrPathUtils.extension(remoteFilename))
-			end
+			local remoteFilename = findRemoteFilename(rendition.photo)
 			local alreadyPublishedPhoto = findAlreadyPublishedPhoto(rendition.photo, exportContext.publishedCollection)
 			if alreadyPublishedPhoto then
 				local linkTarget = sshSupport.remotePath(alreadyPublishedPhoto:getRemoteId())
