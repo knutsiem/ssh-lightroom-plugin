@@ -86,12 +86,10 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 	local progressScope = exportContext:configureProgress {	title = "Uploading photo(s) to " .. exportContext.propertyTable["host"] .. " over SSH" }
 	local sshSupport = SshSupport(exportContext.propertyTable)
 	local collectionPath = sshSupport.remotePath(collectionName)
-	do
-		if not sshSupport.ssh('mkdir -p "%s"', collectionPath) then
-			error("Remote folder creation failed for collection " .. collectionName	.. ". Consult the Lightroom log for details.")
-		end
-		exportContext.exportSession:recordRemoteCollectionId(collectionName)
+	if not sshSupport.ssh('mkdir -p "%s"', collectionPath) then
+		error("Remote folder creation failed for collection " .. collectionName	.. ". Consult the Lightroom log for details.")
 	end
+	exportContext.exportSession:recordRemoteCollectionId(collectionName)
 	for i, rendition in exportContext:renditions { stopIfCanceled = true } do
 		local renderSuccess, pathOrMessage = rendition:waitForRender()
 		if progressScope:isCanceled() then break end
