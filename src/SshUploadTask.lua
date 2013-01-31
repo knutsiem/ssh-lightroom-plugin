@@ -41,7 +41,9 @@ local function SshSupport(settings)
 		end,
 
 		scp = function (source, destination)
-			return execute("scp -i " .. settings["identity"] .. " " .. source .. " " .. settings["user"] .. "@" .. settings["host"] .. ":'\"" .. destination .. "\"'")
+			local encodedSource = encodeForShell(source)
+			local encodedDestination = encodeForShell(destination)
+			return execute("scp -i " .. settings["identity"] .. " \"" .. encodedSource .. "\" " .. settings["user"] .. "@" .. settings["host"] .. ":'\"" .. encodedDestination .. "\"'")
 		end,
 
 		remotePath = function (path)
@@ -104,7 +106,7 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 				end
 			else
 				if sshSupport.ssh('rm -f "%s"', collectionPath .. "/" .. remoteFilename) then
-					if sshSupport.scp(rendition.destinationPath, encodeForShell(collectionPath .. "/" .. remoteFilename )) then
+					if sshSupport.scp(rendition.destinationPath, collectionPath .. "/" .. remoteFilename) then
 						rendition:recordPublishedPhotoId(collectionName .. "/" .. remoteFilename)
 					else
 						rendition:uploadFailed "Upload failure"
