@@ -87,29 +87,52 @@ function SshUploadTask.processRenderedPhotos(functionContext, exportContext)
 	local progressScope = exportContext:configureProgress {	title = "Uploading photo(s) to " .. exportContext.propertyTable["host"] .. " over SSH" }
 	local sshSupport = SshSupport(exportContext.propertyTable)
 	local collectionName = exportContext.publishedCollectionInfo["name"]
-	local collectionPath = sshSupport.remotePath(collectionName)
+	local collectionRemoteId = collectionName
+	local parents = {}
+	do
+		local container = exportContext.publishedCollection
+		while container:getParent() do
+			local parent = container:getParent()
+			table.insert(parents, 1, { collectionSet = parent, remoteIdSegment = parent:getName() })
+			collectionRemoteId = parents[1].remoteIdSegment .. "/" .. collectionRemoteId
+			container = parent
+		end
+	end
+	local collectionPath = sshSupport.remotePath(collectionRemoteId)
 	if not sshSupport.ssh('mkdir -p "%s"', collectionPath) then
 		error("Remote folder creation failed for collection " .. collectionName	.. ". Consult the Lightroom log for details.")
 	end
-	exportContext.exportSession:recordRemoteCollectionId(collectionName)
+	exportContext.publishService.catalog:withWriteAccessDo("Update remote ID of published collection and its photos", function(context)
+			local accumulatedRemoteId
+			for i, parent in ipairs(parents) do
+				if accumulatedRemoteId then
+					accumulatedRemoteId = accumulatedRemoteId .. "/" .. parent.remoteIdSegment
+				else
+					accumulatedRemoteId = parent.remoteIdSegment
+				end
+				logger:debug("Set remoteId of " .. parent.collectionSet:getName() .. " to " .. accumulatedRemoteId)
+				parent.collectionSet:setRemoteId(accumulatedRemoteId)
+			end
+	end)
+	exportContext.exportSession:recordRemoteCollectionId(collectionRemoteId)
 	for i, rendition in exportContext:renditions { stopIfCanceled = true } do
 		local renderSuccess, pathOrMessage = rendition:waitForRender()
 		if progressScope:isCanceled() then break end
 		if renderSuccess then
-			local photo = rendition.photo
-			local remoteFilename = findRemoteFilename(photo)
-			local alreadyPublishedPhoto = findAlreadyPublishedPhoto(photo, exportContext.publishedCollection)
+			local photoRemoteId = collectionRemoteId .. "/" .. findRemoteFilename(rendition.photo)
+			local photoPath = sshSupport.remotePath(photoRemoteId)
+			local alreadyPublishedPhoto = findAlreadyPublishedPhoto(rendition.photo, exportContext.publishedCollection)
 			if alreadyPublishedPhoto then
 				local linkTarget = sshSupport.remotePath(alreadyPublishedPhoto:getRemoteId())
 				if sshSupport.ssh('ln -f "%s" "%s"', linkTarget, collectionPath) then
-					rendition:recordPublishedPhotoId(collectionName .. "/" .. remoteFilename)
+					rendition:recordPublishedPhotoId(photoRemoteId)
 				else
 					rendition:uploadFailed "Remote link creation failure"
 				end
 			else
-				if sshSupport.ssh('rm -f "%s"', collectionPath .. "/" .. remoteFilename) then
-					if sshSupport.scp(rendition.destinationPath, collectionPath .. "/" .. remoteFilename) then
-						rendition:recordPublishedPhotoId(collectionName .. "/" .. remoteFilename)
+				if sshSupport.ssh('rm -f "%s"', photoPath) then
+					if sshSupport.scp(rendition.destinationPath, photoPath) then
+						rendition:recordPublishedPhotoId(photoRemoteId)
 					else
 						rendition:uploadFailed "Upload failure"
 					end
@@ -144,20 +167,40 @@ function SshUploadTask.deletePublishedCollection (publishSettings, info)
 	end
 end
 
+-- Recursively update remote ID prefixes on given container(s) (collection sets and collections) and contained photos
+local function updateRemoteIds (containers, oldPrefix, newPrefix)
+	if #containers == 0 then return end
+	local container = table.remove(containers, 1)
+	if container:getRemoteId() then
+		container:setRemoteId(container:getRemoteId():gsub(oldPrefix, newPrefix, 1))
+		if container.getChildren then
+			for _, child in ipairs(container:getChildren()) do table.insert(containers, 1, child) end
+		end
+		if container.getPublishedPhotos then
+			for _, publishedPhoto in ipairs(container:getPublishedPhotos()) do
+				publishedPhoto:setRemoteId(publishedPhoto:getRemoteId():gsub(oldPrefix, newPrefix , 1))
+			end
+		end
+	end
+	updateRemoteIds(containers, oldPrefix, newPrefix)
+end
+
 function SshUploadTask.renamePublishedCollection( publishSettings, info )
 	if not info.remoteId then return end
 	local sshSupport = SshSupport(publishSettings)
-	local remoteSourcePath = sshSupport.remotePath(info.remoteId)
-	local remoteDestinationPath = sshSupport.remotePath(info.name)
+	local oldRemoteId = info.remoteId
+	local newRemoteId = info.name
+	if info.parents and #info.parents > 0 then
+		newRemoteId = info.parents[#info.parents].remoteCollectionId .. "/" .. newRemoteId
+	end
+	local remoteSourcePath = sshSupport.remotePath(oldRemoteId)
+	local remoteDestinationPath = sshSupport.remotePath(newRemoteId)
 	if not sshSupport.ssh('rm -rf "%s" && mv "%s" "%s"', remoteDestinationPath, remoteSourcePath, remoteDestinationPath) then
 		error("Failed to rename published collection '" .. info.publishedCollection:getName() .. "' to '" .. info.name
 				.. "' in remote service.")
 	end
 	info.publishService.catalog:withWriteAccessDo("Update remote ID of published collection and its photos", function(context)
-			info.publishedCollection:setRemoteId(info.name)
-			for _, publishedPhoto in ipairs(info.publishedCollection:getPublishedPhotos()) do
-				publishedPhoto:setRemoteId(publishedPhoto:getRemoteId():gsub("[^/]+", info.name , 1))
-			end
+			updateRemoteIds({ info.publishedCollection }, oldRemoteId, newRemoteId)
 	end)
 end
 
