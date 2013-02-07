@@ -204,6 +204,47 @@ function SshUploadTask.renamePublishedCollection( publishSettings, info )
 	end)
 end
 
+function SshUploadTask.reparentPublishedCollection (publishSettings, info)
+	if not info.remoteId then return end
+	local sshSupport = SshSupport(publishSettings)
+	local parentsAndRemoteIds = {}
+	for i, parentInfo in ipairs(info.parents) do
+		local remoteId
+		if parentInfo.remoteCollectionId then
+			remoteId = parentInfo.remoteCollectionId
+		elseif i > 1 then
+			remoteId = parentsAndRemoteIds[i-1].remoteId .. "/" .. parentInfo.name
+		else
+			remoteId = parentInfo.name
+		end
+		table.insert(parentsAndRemoteIds, { parentInfo = parentInfo, remoteId =  remoteId })
+	end
+	local oldRemoteId = info.remoteId
+	local sourcePath = sshSupport.remotePath(oldRemoteId)
+	local gotParent = info.parents and #info.parents > 0
+	local destinationDirPath = sshSupport.remotePath(gotParent and parentsAndRemoteIds[#parentsAndRemoteIds].remoteId or ".")
+	if not sshSupport.ssh('mkdir -p "%s" && mv -f "%s" "%s"', destinationDirPath, sourcePath, destinationDirPath) then
+		local hadParent = info.publishedCollection:getParent()
+		local oldParentDescription = hadParent and ("'" .. info.publishedCollection:getParent():getName() .. "'") or "top level"
+		local newParentDescription = gotParent and ("'" .. info.parents[#info.parents].name .. "'") or "top level"
+		error(string.format("Failed to reparent '%s' from %s to %s", info.name, oldParentDescription, newParentDescription))
+	end
+	info.publishService.catalog:withWriteAccessDo("Update remote ID of parent collection sets", function(context)
+			for _, parentAndRemoteId in ipairs(parentsAndRemoteIds) do
+				local parentCollectionSet = info.publishService.catalog:getPublishedCollectionByLocalIdentifier(
+						parentAndRemoteId.parentInfo.localCollectionId)
+				parentCollectionSet:setRemoteId(parentAndRemoteId.remoteId)
+			end
+	end)
+	info.publishService.catalog:withWriteAccessDo("Update remote ID of published collection and its photos", function(context)
+			local newRemoteId = info.name
+			if gotParent then
+				newRemoteId = parentsAndRemoteIds[#parentsAndRemoteIds].remoteId .. "/" .. newRemoteId
+			end
+			updateRemoteIds({ info.publishedCollection }, oldRemoteId, newRemoteId)
+	end)
+end
+
 function SshUploadTask.validatePublishedCollectionName( proposedName )
 	return not proposedName:find("/") and not proposedName:find("\0")
 end

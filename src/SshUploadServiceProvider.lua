@@ -18,6 +18,7 @@ return {
 	deletePhotosFromPublishedCollection =  SshUploadTask.deletePhotosFromPublishedCollection,
 	deletePublishedCollection = SshUploadTask.deletePublishedCollection,
 	renamePublishedCollection = SshUploadTask.renamePublishedCollection,
+	reparentPublishedCollection = SshUploadTask.reparentPublishedCollection,
 	titleForPublishedCollection = "Published Folder",
 	titleForPublishedCollectionSet = "Published Folder Set",
 	titleForPublishedSmartCollection = "Published Smart Folder",
